@@ -1,3 +1,4 @@
+
 name: BChat Desktop Linux Release
 
 on:
@@ -17,11 +18,6 @@ jobs:
       SIGNAL_ENV: production
 
     steps:
-      - name: Install Yarn
-        run: |
-          npm install --global yarn@1.22.22
-          yarn --version
-
       - name: Checkout source
         uses: actions/checkout@v4
         with:
@@ -33,6 +29,11 @@ jobs:
           node-version-file: .nvmrc
           cache: yarn
 
+      - name: Install Yarn
+        run: |
+          npm install --global yarn@1.22.22
+          yarn --version
+
       - name: Install system dependencies
         run: |
           sudo apt-get update
@@ -41,6 +42,9 @@ jobs:
 
       - name: Install project dependencies
         run: yarn install --frozen-lockfile --network-timeout 600000
+
+      - name: Generate protobuf files
+        run: yarn protobuf
 
       - name: Transpile TypeScript
         run: yarn transpile
@@ -51,9 +55,12 @@ jobs:
       - name: Build Linux release package
         run: yarn build-release
 
-      - name: List generated release files
+      - name: Verify release output
         run: |
-          echo "Release directory contents:"
+          if [ ! -d release ] || [ -z "$(find release -type f -print -quit)" ]; then
+            echo "Error: No release files were generated."
+            exit 1
+          fi
           find release -maxdepth 2 -type f -print
 
       - name: Upload Linux release artifacts
@@ -63,3 +70,4 @@ jobs:
           path: release/
           if-no-files-found: error
           retention-days: 14
+
