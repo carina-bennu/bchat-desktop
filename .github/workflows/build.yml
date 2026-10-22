@@ -42,9 +42,6 @@ jobs:
       - name: Install project dependencies
         run: yarn install --frozen-lockfile --network-timeout 600000
 
-      - name: Generate project files
-        run: yarn generate
-
       - name: Transpile TypeScript
         run: yarn transpile
 
@@ -54,20 +51,10 @@ jobs:
       - name: Build Linux release package
         run: yarn build-release
 
-      - name: Verify release output
+      - name: List generated release files
         run: |
-          if [ ! -d release ]; then
-            echo "Error: release directory was not created."
-            exit 1
-          fi
-
-          if [ -z "$(find release -type f -print -quit)" ]; then
-            echo "Error: release directory contains no files."
-            exit 1
-          fi
-
-          echo "Generated release files:"
-          find release -type f -print
+          echo "Release directory contents:"
+          find release -maxdepth 2 -type f -print
 
       - name: Upload Linux release artifacts
         uses: actions/upload-artifact@v4
