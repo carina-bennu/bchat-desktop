@@ -1,0 +1,78 @@
+name: BChat Desktop Linux Release
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  linux-release:
+    name: Build Linux Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    env:
+      SIGNAL_ENV: production
+
+    steps:
+      - name: Install Yarn
+        run: |
+          npm install --global yarn@1.22.22
+          yarn --version
+
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: yarn
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm git-lfs
+          git lfs install
+
+      - name: Install project dependencies
+        run: yarn install --frozen-lockfile --network-timeout 600000
+
+      - name: Generate project files
+        run: yarn generate
+
+      - name: Transpile TypeScript
+        run: yarn transpile
+
+      - name: Run tests
+        run: yarn test
+
+      - name: Build Linux release package
+        run: yarn build-release
+
+      - name: Verify release output
+        run: |
+          if [ ! -d release ]; then
+            echo "Error: release directory was not created."
+            exit 1
+          fi
+
+          if [ -z "$(find release -type f -print -quit)" ]; then
+            echo "Error: release directory contains no files."
+            exit 1
+          fi
+
+          echo "Generated release files:"
+          find release -type f -print
+
+      - name: Upload Linux release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: bchat-linux-release
+          path: release/
+          if-no-files-found: error
+          retention-days: 14
